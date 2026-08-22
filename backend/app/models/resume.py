@@ -15,3 +15,5 @@ class Resume(Base, TimestampMixin):
     raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     owner = relationship("User", back_populates="resumes")
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    chunks = relationship("ResumeChunk", cascade="all, delete-orphan")  
