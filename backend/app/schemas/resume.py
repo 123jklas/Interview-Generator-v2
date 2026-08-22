@@ -8,3 +8,8 @@ class ResumeOut(BaseModel):
     file_name: str
     status: str
     created_at: datetime
+
+class ResumeStatusOut(BaseModel):
+    resume_id: uuid.UUID
+    status: str
+    error_message: str | None = None

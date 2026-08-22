@@ -8,6 +8,8 @@ from app.models.user import User
 from app.models.resume import Resume
 from app.schemas.resume import ResumeOut
 from app.core.config import settings
+from app.workers.tasks import parse_and_embed_resume
+from app.schemas.resume import ResumeStatusOut
 
 router = APIRouter(prefix="/api/v1/resumes", tags=["resumes"])
 MAX_SIZE = 10 * 1024 * 1024
@@ -36,6 +38,7 @@ async def upload_resume(
     db.add(resume)
     db.commit()
     db.refresh(resume)
+    parse_and_embed_resume.delay(str(resume.id))
     return resume
 
 @router.get("", response_model=list[ResumeOut])
@@ -57,3 +60,10 @@ def delete_resume(resume_id: uuid.UUID, db: Session = Depends(get_db), current_u
     Path(resume.file_path).unlink(missing_ok=True)
     db.delete(resume)
     db.commit()
+
+@router.get("/{resume_id}/status", response_model=ResumeStatusOut)
+def get_resume_status(resume_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    resume = db.get(Resume, resume_id)
+    if not resume or resume.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    return ResumeStatusOut(resume_id=resume.id, status=resume.status, error_message=resume.error_message)
