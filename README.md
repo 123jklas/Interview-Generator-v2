@@ -1,53 +1,293 @@
-# Interview Generator (v1 — Streamlit baseline)
+# Ready2Interview
 
-AI 기반 모의면접 생성기. 이력서 PDF를 업로드하면 지원 회사/역할에 맞춘 면접 질문을 생성하고,
-텍스트 또는 음성으로 답변하면 AI가 피드백을 제공한다.
+Ready2Interview is an AI-powered interview preparation platform that generates personalized interview questions and feedback based on a user's resume and target job description.
 
-이 버전(`v1-streamlit` 태그)은 SaaS 백엔드 플랫폼으로 재설계하기 전 기준선(baseline)이다.
-이후 개발은 `develop` 브랜치에서 진행하며, 이 버전의 동작은 보존한다.
+The platform uses Retrieval-Augmented Generation (RAG) to retrieve relevant resume experience and combine it with job requirements, allowing the AI interviewer to generate context-aware questions and evaluate candidate responses.
 
-## 현재 기능 (v1)
+## Features
 
-- **이력서 업로드**: PDF 업로드 → `PyMuPDFLoader`로 텍스트 추출
-- **RAG 기반 질문 생성**: 이력서 텍스트를 청크로 분할(`RecursiveCharacterTextSplitter`) →
-  OpenAI 임베딩 → FAISS 벡터스토어 → LangChain 검색 도구(`pdf_search`)로 구성
-- **회사 리서치**: Tavily Search를 LangChain 도구로 연결해 지원 회사 정보를 함께 활용
-- **면접 에이전트**: `gpt-4o` 기반 LangChain tool-calling agent가 이력서 검색 결과 + 회사 검색
-  결과를 근거로 질문 생성 및 답변 피드백을 수행 (`agent.py`의 `modelCreation`)
-- **텍스트 답변**: Streamlit 채팅 UI로 질문/답변 진행, 세션별 대화 기록 유지
-- **음성 답변**: 브라우저에서 오디오 녹음 → HuggingFace `openai/whisper-small` 파이프라인으로
-  transcription → `superb/wav2vec2-base-superb-er`로 감정(emotion) 인식 → 텍스트 + 감정 라벨을
-  함께 프롬프트에 전달
-- **TTS**: OpenAI TTS(`tts-1`, voice `shimmer`)로 질문을 음성으로 읽어줌 (pygame으로 재생)
+- JWT-based user authentication
+- Resume PDF upload and text extraction
+- Asynchronous resume processing with Celery
+- Resume chunking and vector embeddings
+- Semantic search using PostgreSQL + pgvector
+- Job description management
+- Personalized AI interview sessions
+- Real-time streaming interview questions
+- Structured question classification
+- AI-powered answer evaluation
+- Rubric-based scoring and feedback
+- User-isolated resume and interview data
 
-## 스택
+## Tech Stack
 
-Streamlit, LangChain, LangChain-OpenAI, FAISS, PyMuPDF/PyPDF2, OpenAI API, Tavily,
-HuggingFace Transformers(Whisper, wav2vec2), pygame, pydub
+### Backend
+- Python
+- FastAPI
+- SQLAlchemy
+- Alembic
+- Pydantic
 
-## 로컬 실행
+### Database
+- PostgreSQL
+- pgvector
+
+### AI / RAG
+- OpenAI API
+- OpenAI Embeddings
+- Retrieval-Augmented Generation (RAG)
+- Vector similarity search
+
+### Background Processing
+- Celery
+- RabbitMQ
+- Redis
+
+### Infrastructure
+- Docker
+- Docker Compose
+
+## Architecture
+
+The application follows a service-oriented backend architecture:
+
+```text
+Client
+  │
+  ▼
+FastAPI
+  │
+  ├── Authentication
+  ├── Resume API
+  ├── Job Description API
+  └── Interview API
+          │
+          ▼
+      Service Layer
+          │
+          ├── Resume Parser
+          ├── Embedding Service
+          ├── Retrieval Service
+          ├── Interview Service
+          └── Feedback Service
+          │
+          ▼
+      OpenAI API
+
+Resume Upload
+  │
+  ▼
+RabbitMQ
+  │
+  ▼
+Celery Worker
+  │
+  ├── PDF Text Extraction
+  ├── Resume Chunking
+  └── OpenAI Embeddings
+          │
+          ▼
+PostgreSQL + pgvector
+```
+
+## RAG Pipeline
+
+When a resume is uploaded:
+
+1. The resume PDF is stored by the backend.
+2. A background processing task is sent to RabbitMQ.
+3. A Celery worker extracts text from the PDF.
+4. The extracted text is divided into smaller chunks.
+5. Each chunk is converted into an embedding using the OpenAI Embeddings API.
+6. Embeddings are stored in PostgreSQL using pgvector.
+7. Relevant resume chunks are retrieved using cosine similarity when generating interview questions.
+
+This allows interview questions to be grounded in both the candidate's resume and the target job description.
+
+## AI Interview Flow
+
+```text
+Resume + Job Description
+          │
+          ▼
+   RAG Retrieval
+          │
+          ▼
+Relevant Resume Context
+          │
+          ▼
+   OpenAI Interviewer
+          │
+          ▼
+Streaming Interview Question
+          │
+          ▼
+     User Answer
+          │
+          ▼
+   AI Evaluation
+          │
+          ▼
+Score + Strengths + Weaknesses
++ Follow-up Question
+```
+
+Interview questions are streamed to the client in real time using Server-Sent Events (SSE).
+
+After each response, the system evaluates the answer using a structured rubric including:
+
+- Technical accuracy
+- Clarity
+- Specificity
+- Impact
+
+## Project Structure
+
+```text
+backend/
+└── app/
+    ├── api/
+    │   └── v1/
+    │       ├── auth.py
+    │       ├── resumes.py
+    │       ├── jobs.py
+    │       └── interviews.py
+    │
+    ├── core/
+    │   └── config.py
+    │
+    ├── db/
+    │   ├── base.py
+    │   └── session.py
+    │
+    ├── models/
+    │   ├── user.py
+    │   ├── resume.py
+    │   ├── resume_chunk.py
+    │   ├── job_description.py
+    │   ├── interview_session.py
+    │   ├── interview_question.py
+    │   └── interview_answer.py
+    │
+    ├── schemas/
+    │   ├── resume.py
+    │   └── interview.py
+    │
+    ├── services/
+    │   ├── resume_parser.py
+    │   ├── embedding_service.py
+    │   ├── retrieval_service.py
+    │   ├── llm_client.py
+    │   ├── interview_service.py
+    │   └── feedback_service.py
+    │
+    ├── workers/
+    │   ├── celery_app.py
+    │   └── tasks.py
+    │
+    └── main.py
+```
+
+## Local Development
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/123jklas/Interview-Generator-v2.git
+cd Interview-Generator-v2
+```
+
+### 2. Create a virtual environment
 
 ```bash
 python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-cp .env.example .env
-# .env에 OPENAI_API_KEY, TAVILY_API_KEY 입력
-
-streamlit run main.py
+source venv/bin/activate
 ```
 
-## 알려진 제한 (v2 재설계에서 해결 예정)
+### 3. Install dependencies
 
-- 인증/사용자 구분 없음 (단일 세션, Streamlit `session_state`에만 상태 저장)
-- 이력서/면접 기록이 영구 저장되지 않음 (새로고침 시 소실)
-- FAISS 인덱스가 요청마다 메모리에서 재생성됨 (다중 사용자 확장 불가)
-- PDF 파싱/임베딩/음성 인식이 모두 동기적으로 요청 안에서 처리됨
-- 배포된 웹 서비스 아님 (로컬 실행 전용)
+```bash
+pip install -r requirements.txt
+```
 
-## 로드맵
+### 4. Configure environment variables
 
-`v1-streamlit` 이후에는 FastAPI + PostgreSQL(pgvector) + Redis + Celery/RabbitMQ 기반
-백엔드와 Next.js 프론트엔드로 재구성해 실제 배포 가능한 SaaS 플랫폼으로 발전시킨다.
-진행 상황은 `develop` 브랜치와 GitHub Issues/Milestones에서 관리한다.
+Create a `.env` file based on `.env.example`.
+
+```env
+OPENAI_API_KEY=your-openai-api-key
+CELERY_BROKER_URL=amqp://guest:guest@localhost:5672//
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+```
+
+Additional database and authentication environment variables should also be configured according to `.env.example`.
+
+### 5. Start infrastructure
+
+```bash
+docker compose up -d
+```
+
+This starts:
+
+- PostgreSQL with pgvector
+- RabbitMQ
+- Redis
+
+### 6. Run database migrations
+
+```bash
+cd backend
+alembic upgrade head
+```
+
+### 7. Start the API server
+
+```bash
+uvicorn app.main:app --reload
+```
+
+### 8. Start the Celery worker
+
+In another terminal:
+
+```bash
+cd backend
+celery -A app.workers.celery_app worker --loglevel=info --pool=solo
+```
+
+The API will be available at:
+
+```text
+http://localhost:8000
+```
+
+FastAPI documentation:
+
+```text
+http://localhost:8000/docs
+```
+
+## Development Status
+
+Ready2Interview v2 is currently under active development.
+
+Completed backend components include:
+
+- Authentication and database infrastructure
+- Resume ingestion pipeline
+- Asynchronous document processing
+- Vector embeddings and semantic retrieval
+- RAG infrastructure
+- AI interview session management
+- Streaming question generation
+- Structured answer evaluation and feedback
+
+Future development will focus on expanding the interview experience, frontend integration, production deployment, and improving retrieval and evaluation quality.
+
+## Author
+
+**Taegang Kim**  
+Creator and primary developer of Ready2Interview.
+
+Copyright © 2026 Taegang Kim. All rights reserved.
