@@ -17,6 +17,8 @@ class InterviewSessionOut(BaseModel):
     difficulty: str
     status: str
     created_at: datetime
+    company_name: str
+    job_title: str
 
 class QuestionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)

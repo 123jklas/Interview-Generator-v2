@@ -21,6 +21,17 @@ from app.services.feedback_service import evaluate_answer
 router = APIRouter(prefix="/api/v1/interviews", tags=["interviews"])
 
 
+def _session_to_out(db: Session, session: InterviewSession) -> InterviewSessionOut:
+    job = db.get(JobDescription, session.job_description_id)
+    return InterviewSessionOut(
+        id=session.id, resume_id=session.resume_id, job_description_id=session.job_description_id,
+        interview_type=session.interview_type, difficulty=session.difficulty, status=session.status,
+        created_at=session.created_at,
+        company_name=job.company_name if job else "Unknown",
+        job_title=job.job_title if job else "Unknown",
+    )
+
+
 @router.post("", response_model=InterviewSessionOut, status_code=status.HTTP_201_CREATED)
 def create_interview(payload: InterviewCreateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     resume = db.get(Resume, payload.resume_id)
@@ -40,12 +51,13 @@ def create_interview(payload: InterviewCreateRequest, db: Session = Depends(get_
     db.add(session)
     db.commit()
     db.refresh(session)
-    return session
+    return _session_to_out(db, session)
 
 
 @router.get("", response_model=list[InterviewSessionOut])
 def list_interviews(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(InterviewSession).filter(InterviewSession.user_id == current_user.id).order_by(InterviewSession.created_at.desc()).all()
+    sessions = db.query(InterviewSession).filter(InterviewSession.user_id == current_user.id).order_by(InterviewSession.created_at.desc()).all()
+    return [_session_to_out(db, s) for s in sessions]
 
 
 @router.get("/{interview_id}", response_model=InterviewSessionOut)
@@ -53,7 +65,7 @@ def get_interview(interview_id: uuid.UUID, db: Session = Depends(get_db), curren
     session = db.get(InterviewSession, interview_id)
     if not session or session.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Interview session not found")
-    return session
+    return _session_to_out(db, session)
 
 
 @router.get("/{interview_id}/questions", response_model=list[QuestionOut])
@@ -124,7 +136,7 @@ def submit_answer(interview_id: uuid.UUID, payload: AnswerSubmitRequest, db: Ses
 
     answer = InterviewAnswer(
         question_id=question.id, answer_text=payload.answer_text,
-        overall_score=feedback.overall_score, scores=feedback.scores.model_dump(),
+        overall_score=feedback.overall_score, scores=feedback.scores,
         strengths=feedback.strengths, weaknesses=feedback.weaknesses,
         follow_up_question=feedback.follow_up_question,
     )
