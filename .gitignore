@@ -32,4 +32,3 @@ node_modules/
 # Legacy nested clone (source of the copied v1 files, has its own .git — not tracked here)
 ready2interview/
 uploads/
-backend/app/db/migrations/versions
