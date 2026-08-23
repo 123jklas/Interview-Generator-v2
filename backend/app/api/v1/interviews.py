@@ -124,7 +124,7 @@ def submit_answer(interview_id: uuid.UUID, payload: AnswerSubmitRequest, db: Ses
 
     answer = InterviewAnswer(
         question_id=question.id, answer_text=payload.answer_text,
-        overall_score=feedback.overall_score, scores=feedback.scores,
+        overall_score=feedback.overall_score, scores=feedback.scores.model_dump(),
         strengths=feedback.strengths, weaknesses=feedback.weaknesses,
         follow_up_question=feedback.follow_up_question,
     )
