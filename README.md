@@ -344,5 +344,3 @@ This project was designed and developed by Taegang Kim.
 Copyright © 2026 Taegang Kim. All rights reserved.
 
 This repository is publicly available for portfolio, educational review, and evaluation purposes.
-
-No permission is granted to copy, modify, redistribute, sublicense, or use this software for commercial purposes without prior written permission from the author.
