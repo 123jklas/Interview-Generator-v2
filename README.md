@@ -195,15 +195,11 @@ cd Interview-Generator-v2
 
 ### 2. Configure environment variables
 
-Create your local environment file from the example:
-
 ```bash
 cp .env.example .env
 ```
 
 Add your own credentials and API keys.
-
-**Never commit your `.env` file or OpenAI API key to GitHub.**
 
 ### 3. Start infrastructure
 
@@ -237,8 +233,6 @@ uvicorn app.main:app --reload
 
 ### 5. Start the Celery worker
 
-Open another terminal:
-
 ```bash
 cd backend
 source ../venv/bin/activate
@@ -248,20 +242,11 @@ python -m celery -A app.workers.celery_app worker --loglevel=info --pool=solo
 
 ### 6. Start the frontend
 
-Open another terminal:
-
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-
-Then open:
-
-```text
-http://localhost:3000
-```
-
 ---
 
 ## Application Flow
@@ -299,8 +284,6 @@ Ready2Interview includes several basic security measures:
 - Environment-based secret management
 - User-level filtering for vector retrieval
 
-The current application is intended as a portfolio and development project rather than a production SaaS deployment.
-
 ---
 
 ## Future Improvements
@@ -333,5 +316,3 @@ This project was designed and developed by Taegang Kim.
 ## License
 
 Copyright © 2026 Taegang Kim. All rights reserved.
-
-This repository is publicly available for portfolio, educational review, and evaluation purposes.
