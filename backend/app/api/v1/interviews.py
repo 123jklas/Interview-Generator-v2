@@ -20,6 +20,15 @@ from app.services.feedback_service import evaluate_answer
 
 router = APIRouter(prefix="/api/v1/interviews", tags=["interviews"])
 
+def _session_to_out(db: Session, session: InterviewSession) -> InterviewSessionOut:
+    job = db.get(JobDescription, session.job_description_id)
+    return InterviewSessionOut(
+        id=session.id, resume_id=session.resume_id, job_description_id=session.job_description_id,
+        interview_type=session.interview_type, difficulty=session.difficulty, status=session.status,
+        created_at=session.created_at,
+        company_name=job.company_name if job else "Unknown",
+        job_title=job.job_title if job else "Unknown",
+    )
 
 def _session_to_out(db: Session, session: InterviewSession) -> InterviewSessionOut:
     job = db.get(JobDescription, session.job_description_id)
@@ -59,14 +68,12 @@ def list_interviews(db: Session = Depends(get_db), current_user: User = Depends(
     sessions = db.query(InterviewSession).filter(InterviewSession.user_id == current_user.id).order_by(InterviewSession.created_at.desc()).all()
     return [_session_to_out(db, s) for s in sessions]
 
-
 @router.get("/{interview_id}", response_model=InterviewSessionOut)
 def get_interview(interview_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     session = db.get(InterviewSession, interview_id)
     if not session or session.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Interview session not found")
     return _session_to_out(db, session)
-
 
 @router.get("/{interview_id}/questions", response_model=list[QuestionOut])
 def list_questions(interview_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
