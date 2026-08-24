@@ -4,15 +4,6 @@ Ready2Interview is an AI-powered mock interview platform that generates personal
 
 The platform uses Retrieval-Augmented Generation (RAG) to retrieve relevant experience from the candidate's resume, generate contextual interview questions, and provide structured feedback on each answer.
 
-## Demo
-
-🎥 Demo video coming soon.
-
-> A short demo will show the complete workflow:
-> Resume Upload → Job Description → AI Interview → Answer → Feedback
-
----
-
 ## Features
 
 - User registration and authentication
