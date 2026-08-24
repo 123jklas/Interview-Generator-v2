@@ -60,9 +60,16 @@ export function createJob(payload: { company_name: string; job_title: string; de
 
 // ---- interviews ----
 export interface InterviewSession {
-  id: string; resume_id: string; job_description_id: string;
-  interview_type: string; difficulty: string; status: string; created_at: string;
-}
+    id: string;
+    resume_id: string;
+    job_description_id: string;
+    interview_type: string;
+    difficulty: string;
+    status: string;
+    created_at: string;
+    company_name: string;
+    job_title: string;
+  }
 export interface InterviewQuestion {
   id: string; sequence_number: number; question_type: string; difficulty: string;
   question: string; target_skills: string[]; reason: string | null;
@@ -87,7 +94,15 @@ export function getSessionFeedback(id: string) {
     `/api/v1/interviews/${id}/feedback`
   );
 }
-
+export function updateResume(id: string, file: File) {
+    const form = new FormData();
+    form.append("file", file);
+    return request<Resume>(`/api/v1/resumes/${id}`, { method: "PATCH", body: form });
+  }
+  
+export function deleteResume(id: string) {
+return request<void>(`/api/v1/resumes/${id}`, { method: "DELETE" });
+}
 // ---- SSE 스트리밍 (EventSource는 커스텀 헤더를 못 보내서 fetch+ReadableStream으로 직접 파싱) ----
 export async function streamNextQuestion(
   interviewId: string,
